@@ -47,7 +47,6 @@ jobs:
 
         # Append an image (e.g., confusion matrix)
         echo "### Confusion Matrix" >> outputs/report.md
-        cml-publish outputs/confusion_matrix.png --md >> outputs/report.md || echo "No image found." >> outputs/report.md
-
+        echo "![](./outputs/confusion_matrix.png)"" >> report.md || echo "No image found." >> outputs/report.md
         # 3. Post the report as a comment
         cml comment create outputs/report.md
