@@ -1,0 +1,58 @@
+name: "Python Package and Test"
+on: 
+  pull_request:
+    branches: 
+    - main
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  statuses: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+    - name: "Install uv"
+      uses: astral-sh/setup-uv@v7
+    
+    - name: "Set up Python"
+      uses: actions/setup-python@v6
+      with:
+        python-version-file: ".python-version"
+
+    - name: Install the project
+      run: uv sync --locked --all-extras --dev
+
+    - name: "Lint with Ruff"
+      uses: astral-sh/ruff-action@v3
+      with:
+        src: "./src"
+
+    - name: "Run tests"
+      run: uv run pytest tests
+
+    - name: "Setup CML"
+      uses: iterative/setup-cml@v2
+
+    - name: Generate ML Report
+      env:
+        REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # 1. Run  ML script
+        uv run python src/main.py 
+
+        # 2. Create the Markdown Report
+        echo "## Model Metrics & Visualization" > outputs/report.md
+        
+        # Append metrics
+        cat outputs/metrics.txt >> outputs/report.md || echo "No metrics.txt found." >> outputs/report.md
+
+        # Append an image (e.g., confusion matrix)
+        echo "### Confusion Matrix" >> outputs/report.md
+        cml publish ./outputs/confusion_matrix.png --md >> outputs/report.md || echo "No image found." >> outputs/report.md
+        # 3. Post the report as a comment
+        cml comment create outputs/report.md
